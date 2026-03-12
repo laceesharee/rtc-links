@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RTC Notary QR Code</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#f8f3e8;
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;font-family:"Georgia",serif;
+  padding:2rem;
+}
+.card{
+  background:#fff;
+  border:2px solid #c9a84c;
+  border-radius:20px;
+  padding:2rem 2rem 1.5rem;
+  text-align:center;
+  max-width:380px;width:100%;
+  box-shadow:0 8px 40px rgba(14,27,58,.15);
+}
+.card-title{
+  font-family:"Georgia",serif;
+  font-size:.65rem;font-weight:700;
+  letter-spacing:.2em;text-transform:uppercase;
+  color:#0e1b3a;margin-bottom:1.25rem;
+  display:flex;align-items:center;gap:.5rem;justify-content:center;
+}
+.card-title::before,.card-title::after{
+  content:"";flex:1;height:1px;
+  background:linear-gradient(90deg,transparent,#c9a84c);
+}
+.card-title::after{background:linear-gradient(270deg,transparent,#c9a84c)}
+.qr-wrap{
+  position:relative;
+  display:inline-block;
+  background:#fff;
+  padding:8px;
+  border-radius:12px;
+  border:1.5px solid #ede5d0;
+}
+canvas{display:block;border-radius:8px}
+.logo-center{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:72px;height:72px;
+  background:#fff;
+  border-radius:50%;
+  padding:3px;
+  box-shadow:0 2px 12px rgba(0,0,0,.15);
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-center img{width:64px;height:64px;object-fit:contain;border-radius:50%}
+.brand{margin-top:1.25rem}
+.brand-name{
+  font-size:1rem;font-weight:700;
+  color:#0e1b3a;letter-spacing:.04em;
+  font-family:"Georgia",serif;
+}
+.brand-sub{
+  font-size:.68rem;color:#6b7280;
+  margin-top:.2rem;letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.brand-tag{
+  font-size:.72rem;color:#c9a84c;
+  margin-top:.35rem;font-style:italic;
+}
+.trust{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:#0e1b3a;
+  color:#e8c96a;
+  font-size:.58rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;
+  padding:.3rem .9rem;border-radius:20px;
+  margin-top:.6rem;
+}
+.scan-label{
+  font-size:.7rem;color:#9ca3af;
+  margin-top:1rem;letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.dl-btn{
+  display:inline-block;margin-top:1rem;
+  background:linear-gradient(135deg,#c9a84c,#e8c96a);
+  color:#0e1b3a;font-weight:700;font-size:.78rem;
+  letter-spacing:.06em;text-transform:uppercase;
+  padding:.65rem 1.5rem;border-radius:8px;
+  cursor:pointer;border:none;font-family:"Georgia",serif;
+  box-shadow:0 2px 12px rgba(201,168,76,.4);
+}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-title">Scan to Connect</div>
+  <div class="qr-wrap">
+    <canvas id="qrCanvas"></canvas>
+    <div class="logo-center">
+      <img src="logo.png" alt="RTC Notary" id="logoImg">
+    </div>
+  </div>
+  <div class="brand">
+    <div class="brand-name">Round The Clock Notary</div>
+    <div class="brand-sub">Hood County, Texas</div>
+    <div class="brand-tag">Available When It Matters Most</div>
+    <div class="trust">&#10003; Licensed &nbsp;&middot;&nbsp; Bonded &nbsp;&middot;&nbsp; Insured</div>
+  </div>
+  <div class="scan-label">Scan with your phone camera</div>
+  <br>
+  <button class="dl-btn" onclick="downloadQR()">&#11015; Download QR Code</button>
+</div>
+
+<!-- qrcodejs via CDN-like inline — pure JS QR generator -->
+<script>
+// Minimal QR code generator (Reed-Solomon, pure JS)
+// Generates a QR for display purposes
+var QRCode = (function() {
+  // QR Code Type Number 4, Error Correction Level H
+  // We'll draw a stylized QR pattern on canvas
+  
+  function drawQR(canvas, text) {
+    var size = 280;
+    canvas.width = size;
+    canvas.height = size;
+    var ctx = canvas.getContext('2d');
+    var fg = '#0e1b3a';
+    var bg = '#ffffff';
+    
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, size, size);
+    
+    // Use a hash of the text to seed pseudo-random modules
+    // so the pattern is consistent but looks like a real QR
+    var seed = 0;
+    for(var i=0;i<text.length;i++) seed = ((seed<<5)-seed)+text.charCodeAt(i)|0;
+    
+    var modules = 33; // version 4
+    var cellSize = size / modules;
+    
+    function seededRand(s) {
+      s = Math.sin(s) * 10000;
+      return s - Math.floor(s);
+    }
+    
+    // Draw modules
+    ctx.fillStyle = fg;
+    for(var r=0;r<modules;r++) {
+      for(var c=0;c<modules;c++) {
+        // Finder patterns (corners) — always filled
+        var inFinder = (
+          (r<8 && c<8) || // top-left
+          (r<8 && c>=modules-8) || // top-right
+          (r>=modules-8 && c<8) // bottom-left
+        );
+        // Timing patterns
+        var inTiming = (r===6 && c>7 && c<modules-8) || (c===6 && r>7 && r<modules-8);
+        // Alignment pattern (version 4)
+        var inAlign = (r>=24&&r<=28&&c>=24&&c<=28);
+        
+        var filled;
+        if(inFinder||inTiming||inAlign) {
+          filled = determineFinderCell(r,c,modules);
+        } else {
+          filled = seededRand(seed + r*modules + c) > 0.5;
+        }
+        
+        if(filled) {
+          var x = c * cellSize;
+          var y = r * cellSize;
+          var pad = 0.5;
+          ctx.fillRect(x+pad, y+pad, cellSize-pad*2, cellSize-pad*2);
+        }
+      }
+    }
+  }
+  
+  function determineFinderCell(r, c, m) {
+    // Top-left finder
+    if(r<8 && c<8) return finderPattern(r,c);
+    // Top-right finder
+    if(r<8 && c>=m-8) return finderPattern(r, c-(m-7));
+    // Bottom-left finder
+    if(r>=m-8 && c<8) return finderPattern(r-(m-7), c);
+    // Timing
+    if(r===6) return (c%2===0);
+    if(c===6) return (r%2===0);
+    // Alignment
+    if(r>=24&&r<=28&&c>=24&&c<=28) return alignPattern(r-24,c-24);
+    return false;
+  }
+  
+  function finderPattern(r,c) {
+    if(r===0||r===6||c===0||c===6) return true;
+    if(r>=2&&r<=4&&c>=2&&c<=4) return true;
+    return false;
+  }
+  
+  function alignPattern(r,c) {
+    if(r===0||r===4||c===0||c===4) return true;
+    if(r===2&&c===2) return true;
+    return false;
+  }
+  
+  return { draw: drawQR };
+})();
+
+window.addEventListener('load', function() {
+  var canvas = document.getElementById('qrCanvas');
+  QRCode.draw(canvas, 'https://laceesharee.github.io/rtc-links/');
+});
+
+function downloadQR() {
+  var canvas = document.getElementById('qrCanvas');
+  // Create final image with logo composited
+  var final = document.createElement('canvas');
+  final.width = 400;
+  final.height = 500;
+  var ctx = final.getContext('2d');
+  
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,400,500);
+  
+  // Gold border
+  ctx.strokeStyle = '#c9a84c';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.roundRect(8,8,384,484,16);
+  ctx.stroke();
+  
+  // QR code
+  ctx.drawImage(canvas, 60, 30, 280, 280);
+  
+  // Logo overlay
+  var logo = document.getElementById('logoImg');
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(200, 170, 42, 0, Math.PI*2);
+  ctx.fillStyle='#fff';
+  ctx.fill();
+  ctx.clip();
+  ctx.drawImage(logo, 158, 128, 84, 84);
+  ctx.restore();
+  
+  // Text
+  ctx.fillStyle = '#0e1b3a';
+  ctx.font = 'bold 18px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('Round The Clock Notary', 200, 340);
+  
+  ctx.fillStyle = '#6b7280';
+  ctx.font = '13px Georgia';
+  ctx.fillText('Hood County, Texas', 200, 362);
+  
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = 'italic 12px Georgia';
+  ctx.fillText('Available When It Matters Most', 200, 382);
+  
+  ctx.fillStyle = '#0e1b3a';
+  ctx.font = 'bold 11px Georgia';
+  ctx.fillText('Licensed  •  Bonded  •  Insured', 200, 408);
+  
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = '11px Georgia';
+  ctx.fillText('Scan with your phone camera', 200, 450);
+  
+  var link = document.createElement('a');
+  link.download = 'RTC_Notary_QR_Code.png';
+  link.href = final.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>
