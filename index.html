@@ -62,7 +62,7 @@ body::before{
 .video-overlay{
   position:fixed;
   inset:0;
-  background:linear-gradient(180deg,rgba(8,15,32,.35) 0%,rgba(14,27,58,.30) 50%,rgba(8,15,32,.38) 100%);
+  background:linear-gradient(180deg,rgba(8,15,32,.225) 0%,rgba(14,27,58,.225) 50%,rgba(8,15,32,.225) 100%);
   z-index:0;pointer-events:none;
 }
 .courthouse-bg{
@@ -251,7 +251,7 @@ body::after{
 <body>
 
 <div class="video-bg">
-  <video autoplay muted loop playsinline>
+  <video autoplay muted loop playsinline oncanplay="this.playbackRate=0.5;">
     <source src="Courthouse_at_dusk_timelapse_9fced4f026.mp4" type="video/mp4">
   </video>
 </div>
